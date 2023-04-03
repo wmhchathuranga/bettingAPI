@@ -78,8 +78,126 @@ wss.on('connection', (ws) => {
                 ws.send('Hello, user! I am your autobot.');
             }
 
-            const betGame = async (data) => {
-                console.log(data);
+            const betGame = async (message) => {
+                let betsJson = JSON.parse(message);
+                console.log(betsJson.bettings);
+                var tableIdList = [];
+                const client = await page.target().createCDPSession();
+                await client.send('Network.enable');
+                client.on('Network.webSocketFrameReceived', async event => {
+                    const { requestId, timestamp, response } = event;
+
+                    if ((response.payloadData).includes("baccarat")) {
+
+                        let packet = JSON.parse(response.payloadData);
+                        if (!tableIdList.includes(packet.args.tableId)) {
+                            tableIdList.push(packet.args.tableId)
+                        }
+
+                        if (packet.type == "baccarat.gameState") {
+
+                            // Betting for User sent table
+
+                            async function executeConcurrently() {
+                                let bettingDone = false;
+                                const promises = betsJson.map(obj => {
+                                    return new Promise(async (resolve, reject) => {
+                                        // Execute set of codes on the object
+
+                                        if (bettingTables.includes(packet.args.tableId) && packet.args.tableId == obj.table) {
+
+                                            if (packet.args.betting == "BetsOpen") {
+
+                                                console.log("[Game " + (packet.args.tableId) + "] Betting Opens now\n");
+                                                let table = await page.waitForSelector(`[data-tableid="${obj.table}"]`);
+
+                                                await table.waitForSelector('[data-role="timer"]');
+
+                                                await delay(10);
+
+                                                if (!bettingDone) {
+
+                                                    await page.evaluate((tableId, chipValue, bet) => {
+
+                                                        // console.log(tableId);
+                                                        let table = document.querySelector(`[data-tableid="${tableId}"]`);
+                                                        let player = table.querySelector('[data-role="bet-spot-Player"]');
+                                                        let banker = table.querySelector('[data-role="bet-spot-Banker"]');
+                                                        let tie = table.querySelector('[data-role="bet-spot-Tie"]');
+
+                                                        let betAmount = document.querySelector('[data-role="selected-chip"]');
+                                                        let chip = betAmount.querySelector('[data-role="chip"]');
+                                                        chip.setAttribute('data-value', chipValue);
+
+
+                                                        switch (bet) {
+                                                            case "Player":
+                                                                // player.click();
+                                                                console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
+                                                                break;
+                                                            case "Banker":
+                                                                // banker.click();
+                                                                console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
+                                                                break;
+                                                            case "Tie":
+                                                                // tie.click();
+                                                                console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
+                                                                break;
+                                                            default:
+                                                                break;
+                                                        }
+                                                    }, obj.table, obj.betAmount, obj.betFor);
+
+                                                    console.log("[Game " + (obj.table) + "] Closing Betting...");
+                                                    bettingDone = true;
+                                                }
+
+                                                setTimeout(() => {
+                                                    console.log("[Game " + (obj.table) + "] Revealing Cards...");
+                                                }, 14 * 1000);
+                                            }
+
+
+                                            if (packet.args.dealing == "Finished") {
+                                                let playerHand = "Player Cards : " + packet.args.gameData.playerHand.cards + " | Scores : " + packet.args.gameData.playerHand.score;
+                                                let bankerHand = "Banker Cards : " + packet.args.gameData.bankerHand.cards + " | Scores : " + packet.args.gameData.bankerHand.score;
+                                                let winner = "Winner : " + packet.args.gameData.result.winner;
+
+                                                if (bettingRecieved & bettingDone) {
+                                                    switch (packet.args.gameData.result.winner) {
+                                                        case obj.betFor:
+                                                            console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            break;
+                                                        case "Tie":
+                                                            console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
+                                                            break
+                                                        default:
+                                                            console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            break;
+                                                    }
+                                                }
+                                                console.log("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
+                                            }
+                                        }
+
+                                        // Resolve the promise when done
+                                        resolve();
+                                    });
+                                });
+                                await Promise.all(promises);
+
+                                // if (packet.args.tableId == bettingTable) {
+                            }
+                            if (bettingRecieved) {
+                                executeConcurrently();
+                                // bettingRecieved = false;
+                            }
+                        }
+                        // console.log("\n\n Sniffing " + tableIdList.length + " Games");
+                    }
+
+                });
+
 
             }
 
