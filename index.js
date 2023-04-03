@@ -8,7 +8,7 @@ wss.on('connection', (ws) => {
 
     // Launch a new Puppeteer instance for this user
     (async () => {
-        const browser = await puppeteer.launch({ headless: false });
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
 
         ws.on('message', async (data) => {
