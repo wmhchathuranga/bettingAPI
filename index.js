@@ -8,7 +8,7 @@ wss.on('connection', (ws) => {
 
     // Launch a new Puppeteer instance for this user
     (async () => {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
         const page = await browser.newPage();
 
         ws.on('message', async (data) => {
@@ -78,13 +78,18 @@ wss.on('connection', (ws) => {
                 ws.send('Hello, user! I am your autobot.');
             }
 
-            const betongame = async () => {
+            const betGame = async (data) => {
+                console.log(data);
 
             }
 
 
             if (data.type == "login") {
                 gotoGame();
+            }
+
+            if (data.type == "betting") {
+                betGame(data);
             }
 
             // Perform actions on the website, such as clicking buttons or filling out forms
