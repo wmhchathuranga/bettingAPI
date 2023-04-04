@@ -8,7 +8,7 @@ wss.on('connection', (ws) => {
 
     // Launch a new Puppeteer instance for this user
     (async () => {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
         const page = await browser.newPage();
 
         ws.on('message', async (data) => {
@@ -24,17 +24,17 @@ wss.on('connection', (ws) => {
 
                 // Set screen size
                 await page.setViewport({ width: 1080, height: 1024 });
-                ws.send('Hello, user! I am your autobot.');
+                // ws.send('Hello, user! I am your autobot.');
 
                 // Interacting with Login Form
                 await page.waitForSelector('#strID');
                 await delay(3);
-                await page.type('#strID', 'test001');
+                await page.type('#strID', 'testqa01');
                 await page.type('#strPW', 'asdf1234!');
                 await delay(2);
                 await page.click('#txtInput');
 
-                ws.send('Hello, user! I am your autobot.');
+                // ws.send('Hello, user! I am your autobot.');
                 await page.evaluate(() => {
                     let reCaptcha = document.getElementById('mainCaptcha');
                     let reCaptchaInput = document.getElementById('txtInput');
@@ -49,7 +49,7 @@ wss.on('connection', (ws) => {
                 await page.goto('https://babylonvgpops.evo-games.com/frontend/evo/r2/#category=baccarat_sicbo');
                 await delay(5);
 
-                ws.send('Hello, user! I am your autobot.');
+                ws.send('Successfully logged in');
 
                 page.waitForSelector('[data-role="multiplay-button"]');
                 await delay(3);
@@ -63,7 +63,7 @@ wss.on('connection', (ws) => {
                     let iframe = document.getElementsByTagName('iframe');
                     window.location.replace(iframe[1].src);
                 })
-                ws.send('Hello, user! I am your autobot.');
+                ws.send('Openning betting tables');
                 // await page.goto(iframeUrl);
                 await delay(5);
 
@@ -73,15 +73,27 @@ wss.on('connection', (ws) => {
                     return window.WebSocket && WebSocket.length > 0 && WebSocket.OPEN;
                 });
 
-                ws.send('Hello, user! I am your autobot.');
+                ws.send('Ready to bet');
                 await delay(10);
-                ws.send('Hello, user! I am your autobot.');
+                ws.send('Waiting for bettings');
             }
 
             const betGame = async (message) => {
-                let betsJson = JSON.parse(message);
-                console.log(betsJson.bettings);
+
+                let bettingRecieved = false;
+                let bettingTables = [];
+                let betsJson = message;
+                console.log(message);
+                message.forEach(element => {
+                    if (!bettingTables.includes(element.table))
+                        bettingTables.push(element.table);
+                });
+
+                bettingRecieved = true;
+
+
                 var tableIdList = [];
+
                 const client = await page.target().createCDPSession();
                 await client.send('Network.enable');
                 client.on('Network.webSocketFrameReceived', async event => {
@@ -207,7 +219,7 @@ wss.on('connection', (ws) => {
             }
 
             if (data.type == "betting") {
-                betGame(data);
+                betGame(data.bettings);
             }
 
             // Perform actions on the website, such as clicking buttons or filling out forms
