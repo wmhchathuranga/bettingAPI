@@ -15,7 +15,7 @@ wss.on('connection', (ws) => {
             // Handle messages received from the WebSocket connection
             data = JSON.parse(data);
             console.log(`Received message from user: ${data.type}`);
-
+            let reloaded = false;
             // Perform actions on the website using Puppeteer
             const gotoGame = async () => {
                 await page.goto('http://agency1-lower.cicanopro.com/');
@@ -75,6 +75,7 @@ wss.on('connection', (ws) => {
 
                 ws.send('Ready to bet');
                 await delay(10);
+
                 ws.send('Waiting for bettings');
             }
 
@@ -82,7 +83,10 @@ wss.on('connection', (ws) => {
 
                 let bettingRecieved = false;
                 let bettingTables = [];
+                let balance = 0;
                 let betsJson = message;
+                let bettingDone = false;
+
                 console.log(message);
                 message.forEach(element => {
                     if (!bettingTables.includes(element.table))
@@ -98,7 +102,10 @@ wss.on('connection', (ws) => {
                 await client.send('Network.enable');
                 client.on('Network.webSocketFrameReceived', async event => {
                     const { requestId, timestamp, response } = event;
-
+                    if (!reloaded) {
+                        await page.reload();
+                        reloaded = true;
+                    }
                     if ((response.payloadData).includes("baccarat")) {
 
                         let packet = JSON.parse(response.payloadData);
@@ -111,7 +118,6 @@ wss.on('connection', (ws) => {
                             // Betting for User sent table
 
                             async function executeConcurrently() {
-                                let bettingDone = false;
                                 const promises = betsJson.map(obj => {
                                     return new Promise(async (resolve, reject) => {
                                         // Execute set of codes on the object
@@ -120,8 +126,11 @@ wss.on('connection', (ws) => {
 
                                             if (packet.args.betting == "BetsOpen") {
 
+
                                                 console.log("[Game " + (packet.args.tableId) + "] Betting Opens now\n");
-                                                let table = await page.waitForSelector(`[data-tableid="${obj.table}"]`);
+                                                let iframeHandle = await page.waitForSelector('iframe');
+                                                const iframe = await iframeHandle.contentFrame();
+                                                let table = await iframe.waitForSelector(`[data-tableid="${obj.table}"]`);
 
                                                 await table.waitForSelector('[data-role="timer"]');
 
@@ -131,28 +140,31 @@ wss.on('connection', (ws) => {
 
                                                     await page.evaluate((tableId, chipValue, bet) => {
 
-                                                        // console.log(tableId);
-                                                        let table = document.querySelector(`[data-tableid="${tableId}"]`);
+                                                        console.log(tableId);
+                                                        let iframe = document.querySelector('iframe');
+                                                        let innerDocument = iframe.contentDocument;
+                                                        let table = innerDocument.querySelector(`[data-tableid="${tableId}"]`);
+                                                        // let table = innerDocument.querySelector(`[data-tableid="60i0lcfx5wkkv3sy"]`);
                                                         let player = table.querySelector('[data-role="bet-spot-Player"]');
                                                         let banker = table.querySelector('[data-role="bet-spot-Banker"]');
                                                         let tie = table.querySelector('[data-role="bet-spot-Tie"]');
 
-                                                        let betAmount = document.querySelector('[data-role="selected-chip"]');
+                                                        let betAmount = innerDocument.querySelector('[data-role="selected-chip"]');
                                                         let chip = betAmount.querySelector('[data-role="chip"]');
                                                         chip.setAttribute('data-value', chipValue);
 
 
                                                         switch (bet) {
                                                             case "Player":
-                                                                // player.click();
+                                                                player.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             case "Banker":
-                                                                // banker.click();
+                                                                banker.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             case "Tie":
-                                                                // tie.click();
+                                                                tie.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             default:
@@ -161,11 +173,13 @@ wss.on('connection', (ws) => {
                                                     }, obj.table, obj.betAmount, obj.betFor);
 
                                                     console.log("[Game " + (obj.table) + "] Closing Betting...");
+                                                    ws.send("[Game " + (obj.table) + "] Closing Betting...");
                                                     bettingDone = true;
                                                 }
 
                                                 setTimeout(() => {
                                                     console.log("[Game " + (obj.table) + "] Revealing Cards...");
+                                                    ws.send("[Game " + (obj.table) + "] Revealing Cards...");
                                                 }, 14 * 1000);
                                             }
 
@@ -175,20 +189,28 @@ wss.on('connection', (ws) => {
                                                 let bankerHand = "Banker Cards : " + packet.args.gameData.bankerHand.cards + " | Scores : " + packet.args.gameData.bankerHand.score;
                                                 let winner = "Winner : " + packet.args.gameData.result.winner;
 
-                                                if (bettingRecieved & bettingDone) {
+                                                // ws.send(`${JSON.stringify(packet.args.gameData)}`);
+
+                                                // if (bettingRecieved & bettingDone) {
+                                                if (bettingDone) {
                                                     switch (packet.args.gameData.result.winner) {
                                                         case obj.betFor:
                                                             console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            ws.send(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
                                                             break;
                                                         case "Tie":
                                                             console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
+                                                            ws.send("\nNo winners... Game was a TIE! [ Bet Refunded ]");
                                                             break
                                                         default:
                                                             console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            ws.send(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
                                                             break;
                                                     }
+                                                    bettingDone = false;
                                                 }
                                                 console.log("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
+                                                ws.send("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
                                             }
                                         }
 
@@ -207,6 +229,21 @@ wss.on('connection', (ws) => {
                         }
                         // console.log("\n\n Sniffing " + tableIdList.length + " Games");
                     }
+                    if ((response.payloadData).includes("balanceUpdated")) {
+                        let packet = JSON.parse(response.payloadData);
+
+                        if (packet.type == "balanceUpdated") {
+
+                            let newBalance = packet.args.balance;
+                            if (balance != newBalance) {
+                                balance = newBalance;
+                                console.log(`Your balance : ${balance}`);
+                                ws.send(`Your balance : ${balance}`);
+                            }
+
+                        }
+
+                    }
 
                 });
 
@@ -215,17 +252,18 @@ wss.on('connection', (ws) => {
 
 
             if (data.type == "login") {
+                ws.send('Hello, user! I am your Betting Autobot.');
                 gotoGame();
             }
 
             if (data.type == "betting") {
+                ws.send('Starting Betting for you...');
                 betGame(data.bettings);
             }
 
             // Perform actions on the website, such as clicking buttons or filling out forms
 
             // Send messages back to the user via the WebSocket connection
-            ws.send('Hello, user! I am your autobot.');
         });
 
         ws.on('close', async () => {
