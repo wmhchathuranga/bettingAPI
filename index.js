@@ -156,15 +156,15 @@ wss.on('connection', (ws) => {
 
                                                         switch (bet) {
                                                             case "Player":
-                                                                player.click();
+                                                                // player.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             case "Banker":
-                                                                banker.click();
+                                                                // banker.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             case "Tie":
-                                                                tie.click();
+                                                                // tie.click();
                                                                 console.log(`*********** \nBetting ${chipValue} for ${bet} in Table ${tableId}  \n***********`);
                                                                 break;
                                                             default:
