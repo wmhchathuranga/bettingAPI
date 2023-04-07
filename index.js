@@ -8,7 +8,7 @@ wss.on('connection', (ws) => {
 
     // Launch a new Puppeteer instance for this user
     (async () => {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+        const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
         const page = await browser.newPage();
 
         ws.on('message', async (data) => {
@@ -49,7 +49,7 @@ wss.on('connection', (ws) => {
                 await page.goto('https://babylonvgpops.evo-games.com/frontend/evo/r2/#category=baccarat_sicbo');
                 await delay(5);
 
-                ws.send('Successfully logged in');
+                ws.send(JSON.stringify({ "msg": 'Successfully logged in' }));
 
                 page.waitForSelector('[data-role="multiplay-button"]');
                 await delay(3);
@@ -63,7 +63,7 @@ wss.on('connection', (ws) => {
                     let iframe = document.getElementsByTagName('iframe');
                     window.location.replace(iframe[1].src);
                 })
-                ws.send('Openning betting tables');
+                ws.send(JSON.stringify({ "msg": 'Openning betting tables' }));
                 // await page.goto(iframeUrl);
                 await delay(5);
 
@@ -73,10 +73,10 @@ wss.on('connection', (ws) => {
                     return window.WebSocket && WebSocket.length > 0 && WebSocket.OPEN;
                 });
 
-                ws.send('Ready to bet');
+                ws.send(JSON.stringify({ "msg": 'Ready to bet' }));
                 await delay(10);
 
-                ws.send('Waiting for bettings');
+                ws.send(JSON.stringify({ "msg": 'Waiting for bettings' }));
             }
 
             const betGame = async (message) => {
@@ -122,6 +122,7 @@ wss.on('connection', (ws) => {
                                     return new Promise(async (resolve, reject) => {
                                         // Execute set of codes on the object
 
+                                        console.log(obj);
                                         if (bettingTables.includes(packet.args.tableId) && packet.args.tableId == obj.table) {
 
                                             if (packet.args.betting == "BetsOpen") {
@@ -140,7 +141,7 @@ wss.on('connection', (ws) => {
 
                                                     await page.evaluate((tableId, chipValue, bet) => {
 
-                                                        console.log(tableId);
+                                                        console.log(tableId, bet);
                                                         let iframe = document.querySelector('iframe');
                                                         let innerDocument = iframe.contentDocument;
                                                         let table = innerDocument.querySelector(`[data-tableid="${tableId}"]`);
@@ -173,13 +174,13 @@ wss.on('connection', (ws) => {
                                                     }, obj.table, obj.betAmount, obj.betFor);
 
                                                     console.log("[Game " + (obj.table) + "] Closing Betting...");
-                                                    ws.send("[Game " + (obj.table) + "] Closing Betting...");
+                                                    ws.send(JSON.stringify({ "msg": "[Game " + (obj.table) + "] Closing Betting..." }));
                                                     bettingDone = true;
                                                 }
 
                                                 setTimeout(() => {
                                                     console.log("[Game " + (obj.table) + "] Revealing Cards...");
-                                                    ws.send("[Game " + (obj.table) + "] Revealing Cards...");
+                                                    ws.send(JSON.stringify({ "msg": "[Game " + (obj.table) + "] Revealing Cards..." }));
                                                 }, 14 * 1000);
                                             }
 
@@ -196,21 +197,21 @@ wss.on('connection', (ws) => {
                                                     switch (packet.args.gameData.result.winner) {
                                                         case obj.betFor:
                                                             console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
-                                                            ws.send(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            ws.send(JSON.stringify({ "msg": `\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
                                                             break;
                                                         case "Tie":
                                                             console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
-                                                            ws.send("\nNo winners... Game was a TIE! [ Bet Refunded ]");
+                                                            ws.send(JSON.stringify({ "msg": "\nNo winners... Game was a TIE! [ Bet Refunded ]" }));
                                                             break
                                                         default:
                                                             console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
-                                                            ws.send(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                            ws.send(JSON.stringify({ "msg": `\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
                                                             break;
                                                     }
                                                     bettingDone = false;
                                                 }
                                                 console.log("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
-                                                ws.send("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
+                                                ws.send(JSON.stringify({ "msg": "\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n" }));
                                             }
                                         }
 
@@ -238,7 +239,7 @@ wss.on('connection', (ws) => {
                             if (balance != newBalance) {
                                 balance = newBalance;
                                 console.log(`Your balance : ${balance}`);
-                                ws.send(`Your balance : ${balance}`);
+                                ws.send(JSON.stringify({ "msg": `Your balance : ${balance}` }));
                             }
 
                         }
@@ -252,12 +253,13 @@ wss.on('connection', (ws) => {
 
 
             if (data.type == "login") {
-                ws.send('Hello, user! I am your Betting Autobot.');
+                ws.send(JSON.stringify({ "msg": 'Hello, user! I am your Betting Autobot.' }));
                 gotoGame();
             }
 
             if (data.type == "betting") {
-                ws.send('Starting Betting for you...');
+                ('Starting Betting for you...');
+                // console.log(data.bettings);
                 betGame(data.bettings);
             }
 
