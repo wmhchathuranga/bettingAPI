@@ -194,28 +194,50 @@ wss.on('connection', (ws) => {
 
                                                 // if (bettingRecieved & bettingDone) {
                                                 if (bettingDone) {
-                                                    switch (packet.args.gameData.result.winner) {
-                                                        case obj.betFor:
-                                                            console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
-                                                            ws.send(JSON.stringify({ "msg": `\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
-                                                            obj.betAmount = obj.initialBet;
-                                                            break;
-                                                        case "Tie":
-                                                            console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
-                                                            ws.send(JSON.stringify({ "msg": "\nNo winners... Game was a TIE! [ Bet Refunded ]" }));
-                                                            obj.betAmount = obj.initialBet;
-                                                            break
-                                                        default:
-                                                            console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
-                                                            ws.send(JSON.stringify({ "msg": `\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
-                                                            if ((coinList.indexOf(obj.betAmount) + 1) < 5)
-                                                                obj.betAmount = coinList[coinList.indexOf(obj.betAmount) + 1];
-                                                            else
+                                                    if (obj.strategy == "Martin")
+                                                        switch (packet.args.gameData.result.winner) {
+                                                            case obj.betFor:
+                                                                console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                                ws.send(JSON.stringify({ "msg": `\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
                                                                 obj.betAmount = obj.initialBet;
-                                                            break;
-                                                    }
+                                                                break;
+                                                            case "Tie":
+                                                                console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
+                                                                ws.send(JSON.stringify({ "msg": "\nNo winners... Game was a TIE! [ Bet Refunded ]" }));
+                                                                obj.betAmount = obj.initialBet;
+                                                                break
+                                                            default:
+                                                                console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                                ws.send(JSON.stringify({ "msg": `\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
+                                                                if ((coinList.indexOf(obj.betAmount) + 1) < 5)
+                                                                    obj.betAmount = coinList[coinList.indexOf(obj.betAmount) + 1];
+                                                                else
+                                                                    obj.betAmount = obj.initialBet;
+                                                                break;
+                                                        }
+                                                    else if (obj.strategy == "Parole")
+                                                        switch (packet.args.gameData.result.winner) {
+                                                            case obj.betFor:
+                                                                console.log(`\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                                ws.send(JSON.stringify({ "msg": `\nWINNER...! \nYou WON ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
+                                                                if ((coinList.indexOf(obj.betAmount) + 1) < 5)
+                                                                    obj.betAmount = coinList[coinList.indexOf(obj.betAmount) + 1];
+                                                                else
+                                                                    obj.betAmount = obj.initialBet;
+                                                                break;
+                                                            case "Tie":
+                                                                console.log("\nNo winners... Game was a TIE! [ Bet Refunded ]");
+                                                                ws.send(JSON.stringify({ "msg": "\nNo winners... Game was a TIE! [ Bet Refunded ]" }));
+                                                                obj.betAmount = obj.initialBet;
+                                                                break
+                                                            default:
+                                                                console.log(`\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}`);
+                                                                ws.send(JSON.stringify({ "msg": `\nLOST...! \nYou LOST ${obj.betAmount} in Table ${obj.table} by betting for ${obj.betFor}` }));
+                                                                obj.betAmount = obj.initialBet;
+                                                                break;
+                                                        }
                                                     console.log(`Next Betting : \nBetting ${obj.betAmount} for ${obj.betFor} in Table ${obj.table}  \n`);
-                                                    ws.send(`Next Betting : \nBetting ${obj.betAmount} for ${obj.betFor} in Table ${obj.table}  \n`);
+                                                    ws.send(`Next Betting : \nBetting ${obj.betAmount} for ${obj.betFor} in Table ${obj.table} using ${obj.strategy} Strategy! \n`);
                                                     bettingDone = false;
                                                 }
                                                 console.log("\n[Game " + (obj.table) + "] \n" + playerHand + "\n" + bankerHand + "\n" + winner + "\n");
