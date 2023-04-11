@@ -5,6 +5,7 @@ const wss = new WebSocket.Server({ port: 8081 });
 
 wss.on('connection', (ws) => {
     console.log('New WebSocket connection!');
+    let reloaded = false;
 
     // Launch a new Puppeteer instance for this user
     (async () => {
@@ -15,7 +16,7 @@ wss.on('connection', (ws) => {
             // Handle messages received from the WebSocket connection
             data = JSON.parse(data);
             console.log(`Received message from user: ${data.type}`);
-            let reloaded = false;
+
             // Perform actions on the website using Puppeteer
             const gotoGame = async () => {
                 await page.goto('http://agency1-lower.cicanopro.com/');
@@ -280,6 +281,7 @@ wss.on('connection', (ws) => {
 
             if (data.type == "login") {
                 ws.send(JSON.stringify({ "msg": 'Hello, user! I am your Betting Autobot.' }));
+
                 gotoGame();
             }
 
