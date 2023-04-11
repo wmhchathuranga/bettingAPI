@@ -83,7 +83,7 @@ wss.on('connection', (ws) => {
 
                 let bettingRecieved = false;
                 let bettingTables = [];
-                let balance = 0;
+                let balance = -1;
                 let betsJson = message;
                 let bettingDone = false;
 
@@ -269,7 +269,7 @@ wss.on('connection', (ws) => {
                             if (balance != newBalance) {
                                 balance = newBalance;
                                 console.log(`Your balance : ${balance}`);
-                                ws.send(JSON.stringify({ "msg": `Your balance : ${balance}` }));
+                                ws.send(JSON.stringify({ "type": "balance", "balance": balance }));
                             }
 
                         }
