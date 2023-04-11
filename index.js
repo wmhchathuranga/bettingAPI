@@ -29,8 +29,8 @@ wss.on('connection', (ws) => {
                 // Interacting with Login Form
                 await page.waitForSelector('#strID');
                 await delay(3);
-                await page.type('#strID', 'testqa01');
-                await page.type('#strPW', 'asdf1234!');
+                await page.type('#strID', 'coco002');
+                await page.type('#strPW', 'Qwer@1234');
                 await delay(2);
                 await page.click('#txtInput');
 
@@ -271,14 +271,10 @@ wss.on('connection', (ws) => {
                                 console.log(`Your balance : ${balance}`);
                                 ws.send(JSON.stringify({ "type": "balance", "balance": balance }));
                             }
-
                         }
-
                     }
 
                 });
-
-
             }
 
 
