@@ -3,15 +3,14 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8081 });
 
+wss.on('connection', (ws) => {
+    console.log('New WebSocket connection!');
+    let reloaded = false;
 
-// Launch a new Puppeteer instance for this user
-(async () => {
-    const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
-    wss.on('connection', async (ws) => {
-        console.log('New WebSocket connection!');
-        let reloaded = false;
+    // Launch a new Puppeteer instance for this user
+    (async () => {
+        const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
         const page = await browser.newPage();
-
 
         ws.on('message', async (data) => {
             // Handle messages received from the WebSocket connection
@@ -19,7 +18,7 @@ const wss = new WebSocket.Server({ port: 8081 });
             console.log(`Received message from user: ${data.type}`);
 
             // Perform actions on the website using Puppeteer
-            const gotoGame = async () => {
+            const gotoGame = async (login) => {
                 await page.goto('http://agency1-lower.cicanopro.com/');
 
                 await delay(1);
@@ -31,8 +30,8 @@ const wss = new WebSocket.Server({ port: 8081 });
                 // Interacting with Login Form
                 await page.waitForSelector('#strID');
                 await delay(3);
-                await page.type('#strID', 'coco002');
-                await page.type('#strPW', 'Qwer@1234');
+                await page.type('#strID', login.uname);
+                await page.type('#strPW', login.passwd);
                 await delay(2);
                 await page.click('#txtInput');
 
@@ -283,7 +282,7 @@ const wss = new WebSocket.Server({ port: 8081 });
             if (data.type == "login") {
                 ws.send(JSON.stringify({ "msg": 'Hello, user! I am your Betting Autobot.' }));
 
-                gotoGame();
+                gotoGame(data);
             }
 
             if (data.type == "betting") {
@@ -302,8 +301,8 @@ const wss = new WebSocket.Server({ port: 8081 });
             await browser.close();
             console.log('WebSocket connection closed.');
         });
-    })
-})();
+    })();
+});
 
 
 // Synchronyse Sleep function
