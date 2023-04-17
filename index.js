@@ -3,14 +3,15 @@ const WebSocket = require('ws');
 
 const wss = new WebSocket.Server({ port: 8081 });
 
-wss.on('connection', (ws) => {
-    console.log('New WebSocket connection!');
-    let reloaded = false;
 
-    // Launch a new Puppeteer instance for this user
-    (async () => {
-        const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+// Launch a new Puppeteer instance for this user
+(async () => {
+    const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox'] });
+    wss.on('connection', async (ws) => {
+        console.log('New WebSocket connection!');
+        let reloaded = false;
         const page = await browser.newPage();
+
 
         ws.on('message', async (data) => {
             // Handle messages received from the WebSocket connection
@@ -301,8 +302,8 @@ wss.on('connection', (ws) => {
             await browser.close();
             console.log('WebSocket connection closed.');
         });
-    })();
-});
+    })
+})();
 
 
 // Synchronyse Sleep function
